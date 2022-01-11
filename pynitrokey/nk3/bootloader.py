@@ -83,6 +83,17 @@ class Nitrokey3Bootloader(Nitrokey3Base):
     def list() -> List["Nitrokey3Bootloader"]:
         from . import PID_NITROKEY3_BOOTLOADER, VID_NITROKEY
 
+        import libusbsio
+
+        sio = libusbsio.usbsio()
+        all_hid_devices = sio.HIDAPI_Enumerate()
+        logger.debug("Enumerating raw HID devices:")
+        for dev in all_hid_devices:
+            path = dev["path"]
+            vid = dev["vendor_id"]
+            pid = dev["product_id"]
+            logger.debug(f"{path}: {vid:04x}:{pid:04x}")
+
         device_filter = USBDeviceFilter(
             f"0x{VID_NITROKEY:x}:0x{PID_NITROKEY3_BOOTLOADER:x}"
         )
