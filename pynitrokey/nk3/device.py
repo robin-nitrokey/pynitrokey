@@ -56,11 +56,11 @@ class Nitrokey3Device(Nitrokey3Base):
             )
 
         self.device = device
-        self.logger = logger.getChild(device.descriptor.path)
+        self.logger = logger.getChild(str(device.descriptor.path))
 
     @property
     def path(self) -> str:
-        return self.device.descriptor.path
+        return str(self.device.descriptor.path)
 
     @property
     def name(self) -> str:
