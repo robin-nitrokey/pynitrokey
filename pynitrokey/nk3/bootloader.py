@@ -62,7 +62,7 @@ class Nitrokey3Bootloader(Nitrokey3Base):
 
     def reboot(self) -> None:
         if not self.device.reset(reopen=False):
-            raise Exception("Failed to reboot Nitrokey 3 bootloader")
+            logger.warn("Failed to reboot Nitrokey 3 bootloader")
 
     def uuid(self) -> Optional[int]:
         uuid = self.device.get_property(PropertyTag.UNIQUE_DEVICE_IDENT)
