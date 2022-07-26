@@ -9,7 +9,7 @@
 
 import os.path
 import urllib.parse
-from typing import BinaryIO, Callable, Dict, Generator, Optional, Pattern
+from typing import BinaryIO, Callable, Dict, Generator, List, Optional, Pattern
 
 import requests
 from dataclasses import dataclass
@@ -92,7 +92,7 @@ class Asset:
 @dataclass
 class Release:
     tag: str
-    assets: list[str]
+    assets: List[str]
 
     def __str__(self) -> str:
         return self.tag
