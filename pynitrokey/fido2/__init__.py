@@ -103,17 +103,24 @@ def find(solo_serial=None, retries=5, raw_device=None, udp=False):
 
 
 def find_all():
+    from fido2.ctap import CtapDevice
     from fido2.hid import CtapHidDevice
+    from fido2.pcsc import CtapPcscDevice
 
-    hid_devices = list(CtapHidDevice.list_devices())
-    solo_devices = [d for d in hid_devices
-        if (d.descriptor["vendor_id"], d.descriptor["product_id"]) in [
-            ## @FIXME: move magic numbers
-            (1155, 41674),
-            (0x20A0, 0x42B3),
-            (0x20A0, 0x42B1),
-        ]
-    ]
+    solo_devices: list[CtapDevice] = []
+
+    for hid_device in CtapHidDevice.list_devices():
+        if (hid_device.descriptor.vid, hid_device.descriptor.pid) in [
+                ## @FIXME: move magic numbers
+                (1155, 41674),
+                (0x20A0, 0x42B3),
+                (0x20A0, 0x42B1),
+        ]:
+            solo_devices.append(hid_device)
+
+    for pcsc_device in CtapPcscDevice.list_devices():
+        # TODO: implement ATR checks
+        # atr = pcsc_device.get_atr()
+        solo_devices.append(pcsc_device)
+
     return [find(raw_device=device) for device in solo_devices]
-
-

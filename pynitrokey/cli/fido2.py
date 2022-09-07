@@ -26,6 +26,7 @@ import pynitrokey.fido2 as nkfido2
 from cryptography.hazmat.primitives import hashes
 from fido2.client import ClientError as Fido2ClientError
 from fido2.ctap1 import ApduError
+from fido2.pcsc import CtapPcscDevice
 from pynitrokey.cli.update import update
 
 from pynitrokey.cli.monitor import monitor
@@ -147,11 +148,14 @@ def list():
     solos = nkfido2.find_all()
     local_print(":: 'Nitrokey FIDO2' keys")
     for c in solos:
-        devdata = c.dev.descriptor
-        if "serial_number" in devdata:
-            local_print(f"{devdata['serial_number']}: {devdata['product_string']}")
+        if isinstance(c.dev, CtapPcscDevice):
+            local_print(f"PCSC: {c.dev._name}")
         else:
-            local_print(f"{devdata['path']}: {devdata['product_string']}")
+            devdata = c.dev.descriptor
+            if "serial_number" in devdata:
+                local_print(f"{devdata['serial_number']}: {devdata['product_string']}")
+            else:
+                local_print(f"{devdata['path']}: {devdata['product_string']}")
 
 
 @click.command()

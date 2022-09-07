@@ -18,10 +18,11 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from fido2.attestation import Attestation
 from fido2.client import Fido2Client
-from fido2.ctap import CtapError
+from fido2.ctap import CtapDevice, CtapError
 from fido2.ctap1 import CTAP1
 from fido2.ctap2 import CTAP2
 from fido2.hid import CTAPHID, CtapHidDevice
+from fido2.pcsc import CtapPcscDevice
 from intelhex import IntelHex
 
 import pynitrokey.exceptions
@@ -56,10 +57,12 @@ class NKFido2Client:
 
     def find_device(self, dev=None, solo_serial=None):
         if dev is None:
-            devices = list(CtapHidDevice.list_devices())
+            devices = []
+            devices.extend(CtapHidDevice.list_devices())
+            devices.extend([d for d in CtapPcscDevice.list_devices() if "uTrust" in d._name])
             if solo_serial is not None:
                 devices = [
-                    d for d in devices if d.descriptor["serial_number"] == solo_serial
+                    d for d in devices if isinstance(d, CtapHidDevice) and d.descriptor["serial_number"] == solo_serial
                 ]
             if len(devices) > 1:
                 raise pynitrokey.exceptions.NonUniqueDeviceError
