@@ -9,7 +9,7 @@
 
 from dataclasses import dataclass
 from functools import total_ordering
-from typing import Tuple
+from typing import Optional, Tuple
 
 from spsdk.sbfile.misc import BcdVersion3
 
@@ -29,10 +29,11 @@ class Uuid:
 
 @total_ordering
 class Version:
-    def __init__(self, major: int, minor: int, patch: int) -> None:
+    def __init__(self, major: int, minor: int, patch: int, pre: Optional[str] = None) -> None:
         self.major = major
         self.minor = minor
         self.patch = patch
+        self.pre = pre
 
     def __hash__(self) -> int:
         return hash(self._as_tuple())
@@ -48,13 +49,16 @@ class Version:
         return self._as_tuple() < other._as_tuple()
 
     def __repr__(self) -> str:
-        return f"Version(major={self.major}, minor={self.minor}, patch={self.patch})"
+        return f"Version(major={self.major}, minor={self.minor}, patch={self.patch}, pre={self.pre})"
 
     def __str__(self) -> str:
-        return f"v{self.major}.{self.minor}.{self.patch}"
+        if self.pre:
+            return f"v{self.major}.{self.minor}.{self.patch}-{self.pre}"
+        else:
+            return f"v{self.major}.{self.minor}.{self.patch}"
 
-    def _as_tuple(self) -> Tuple[int, int, int]:
-        return (self.major, self.minor, self.patch)
+    def _as_tuple(self) -> Tuple[int, int, int, Optional[str]]:
+        return (self.major, self.minor, self.patch, self.pre)
 
     @classmethod
     def from_int(cls, version: int) -> "Version":
@@ -67,7 +71,10 @@ class Version:
 
     @classmethod
     def from_str(cls, s: str) -> "Version":
-        str_parts = s.split(".")
+        version_parts = s.split("-", maxsplit=1)
+        pre = version_parts[1] if len(version_parts) == 2 else None
+
+        str_parts = version_parts[0].split(".")
         if len(str_parts) != 3:
             raise ValueError(f"Invalid firmware version: {s}")
 
@@ -76,7 +83,7 @@ class Version:
         except ValueError:
             raise ValueError(f"Invalid component in firmware version: {s}")
 
-        return cls(major=int_parts[0], minor=int_parts[1], patch=int_parts[2])
+        return cls(major=int_parts[0], minor=int_parts[1], patch=int_parts[2], pre=pre)
 
     @classmethod
     def from_v_str(cls, s: str) -> "Version":
