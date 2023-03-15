@@ -28,18 +28,30 @@ from pynitrokey.nk3.utils import Uuid, Version
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class Fido2Certs:
+    start: Version
+    hashes: List[str]
+
+
 TEST_CASES = []
 
-FIDO2_CERT_HASHES = {
-    Version(0, 1, 0): [
-        "ad8fd1d16f59104b9e06ef323cc03f777ed5303cd421a101c9cb00bb3fdf722d"
-    ],
-    Version(1, 0, 3): [
-        "aa1cb760c2879530e7d7fed3da75345d25774be9cfdbbcbd36fdee767025f34b",  # NK3xN/lpc55
-        "4c331d7af869fd1d8217198b917a33d1fa503e9778da7638504a64a438661ae0",  # NK3AM/nrf52
-        "f1ed1aba24b16e8e3fabcda72b10cbfa54488d3b778bda552162d60c6dd7b4fa",  # NK3AM/nrf52 test
-    ],
-}
+FIDO2_CERTS = [
+    Fido2Certs(
+        start=Version(0, 1, 0),
+        hashes=[
+            "ad8fd1d16f59104b9e06ef323cc03f777ed5303cd421a101c9cb00bb3fdf722d",
+        ],
+    ),
+    Fido2Certs(
+        start=Version(1, 0, 3),
+        hashes=[
+            "aa1cb760c2879530e7d7fed3da75345d25774be9cfdbbcbd36fdee767025f34b",  # NK3xN/lpc55
+            "4c331d7af869fd1d8217198b917a33d1fa503e9778da7638504a64a438661ae0",  # NK3AM/nrf52
+            "f1ed1aba24b16e8e3fabcda72b10cbfa54488d3b778bda552162d60c6dd7b4fa",  # NK3AM/nrf52 test
+        ],
+    ),
+]
 
 AID_ADMIN = [0xA0, 0x00, 0x00, 0x08, 0x47, 0x00, 0x00, 0x00, 0x01]
 AID_PROVISIONER = [0xA0, 0x00, 0x00, 0x08, 0x47, 0x01, 0x00, 0x00, 0x01]
@@ -50,10 +62,26 @@ DEFAULT_EXCLUDES = ["bootloader"]
 ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
 
 
-def get_fido2_cert_hashes(version: Version) -> Optional[List[str]]:
-    versions = [v for v in FIDO2_CERT_HASHES if version >= v]
-    if versions:
-        return FIDO2_CERT_HASHES[max(versions)]
+def get_fido2_certs(version: Version) -> Optional[Fido2Certs]:
+    """
+    >>> get_fido2_certs(Version.from_str("0.0.0"))
+    None
+    >>> get_fido2_certs(Version.from_str("0.1.0")).start
+    Version(major=0, minor=1, patch=0, pre=None)
+    >>> get_fido2_certs(Version.from_str("0.1.0-rc.1")).start
+    Version(major=0, minor=1, patch=0, pre=None)
+    >>> get_fido2_certs(Version.from_str("0.2.0")).start
+    Version(major=0, minor=1, patch=0, pre=None)
+    >>> get_fido2_certs(Version.from_str("1.0.3")).start
+    Version(major=1, minor=0, patch=3, pre=None)
+    >>> get_fido2_certs(Version.from_str("1.0.3-alpha.1")).start
+    Version(major=1, minor=0, patch=3, pre=None)
+    >>> get_fido2_certs(Version.from_str("2.5.0")).start
+    Version(major=1, minor=0, patch=3, pre=None)
+    """
+    certs = [certs for certs in FIDO2_CERTS if version >= certs.start]
+    if certs:
+        return max(certs, key=lambda c: c.start)
     else:
         return None
 
@@ -315,8 +343,8 @@ def test_fido2(ctx: TestContext, device: Nitrokey3Base) -> TestResult:
 
     firmware_version = ctx.firmware_version or device.version()
     if firmware_version:
-        expected_cert_hashes = get_fido2_cert_hashes(firmware_version)
-        if expected_cert_hashes and cert_hash not in expected_cert_hashes:
+        expected_certs = get_fido2_certs(firmware_version)
+        if expected_certs and cert_hash not in expected_certs.hashes:
             return TestResult(
                 TestStatus.FAILURE,
                 f"Unexpected FIDO2 cert hash for version {firmware_version}: {cert_hash}",
